@@ -13,7 +13,6 @@
   <header class="nav">
     <div class="nav-inner">
       <div class="brand">
-        <!-- change the text or replace with your logo image -->
         <span class="logo-txt">Eventure</span>
       </div>
       <nav class="menu">
@@ -38,7 +37,6 @@
           <h1 class="hero-title">Book your flight & event tickets with confidence</h1>
           <p class="hero-sub">Fast, secure and stylish booking — made for Eventure.</p>
 
-          <!-- Booking form (hero) -->
           <form id="searchForm" class="search-form" autocomplete="off">
             <div class="row">
               <div class="field">
@@ -75,53 +73,122 @@
         </div>
 
         <div class="hero-right">
-          <!-- Placeholder hero image: replace the src with your own -->
           <img src="assets/hero-placeholder.jpg" alt="Hero image — replace me" id="heroImage" class="hero-image">
-          <!-- Note: add your image into assets/ and keep the same filename or update src -->
         </div>
       </div>
     </div>
   </section>
 
-  <!-- PROMOS / DEALS (rotating) -->
+  <!-- PROMOS / DEALS -->
   <section id="deals" class="deals">
     <div class="max">
       <h2>Special Offers</h2>
-      <div id="promoStrip" class="promo-strip">
-        <!-- promos are injected by script.js; replace with images or remote URLs -->
-      </div>
+      <div id="promoStrip" class="promo-strip"></div>
     </div>
   </section>
 
   <!-- RESULTS / EVENTS LIST -->
-  <main class="max" id="results">
-    <h2>Available Events & Flights</h2>
+<main class="max" id="results">
+  <h2>Available Events & Flights</h2>
 
-    <!-- Filters -->
-    <div class="filters">
-      <input id="filterKeyword" placeholder="Search events or destinations">
-      <select id="filterCategory">
-        <option value="">All Categories</option>
-        <option value="Concert">Concert</option>
-        <option value="Festival">Festival</option>
-        <option value="Theater">Theater</option>
-      </select>
-      <button id="resetFilters" class="btn outline">Reset</button>
+  <!-- Filters -->
+  <div class="filters">
+    <input id="filterKeyword" placeholder="Search events or destinations">
+    <select id="filterCategory">
+      <option value="">All Categories</option>
+      <option value="Concert">Concert</option>
+      <option value="Theatre">Theatre</option>
+      <option value="Festival">Festival</option>
+      <option value="Comedy">Comedy</option>
+    </select>
+    <button id="resetFilters" class="btn outline">Reset</button>
+  </div>
+
+  <!-- Event Cards -->
+  <div id="cards" class="cards-grid">
+
+    <div class="card">
+      <img src="assets/stellar-night.jpg" alt="Stellar Night Concert">
+      <h4>Stellar Night Concert</h4>
+      <p>2025-12-12 — 19:00 • Grand Arena</p>
+      <p>An immersive live performance featuring top artists.</p>
+      <p><strong>KSh 1,500</strong></p>
+      <button class="btn small red">Book</button>
     </div>
 
-    <div id="cards" class="cards-grid">
-      <!-- Event cards injected by script.js -->
+    <div class="card">
+      <img src="assets/classic-theatre.jpg" alt="Classic Theatre Play">
+      <h4>Classic Theatre Play</h4>
+      <p>2026-01-08 — 18:00 • Downtown Theatre</p>
+      <p>A timeless drama performed by an award-winning cast.</p>
+      <p><strong>KSh 900</strong></p>
+      <button class="btn small red">Book</button>
     </div>
-  </main>
 
-  <!-- SEAT MODAL / BOOKING FLOW (hidden by default) -->
+    <div class="card">
+      <img src="assets/food-art.jpg" alt="Food & Art Festival">
+      <h4>Food & Art Festival</h4>
+      <p>2026-03-20 — 10:00 • Riverside Grounds</p>
+      <p>Local flavors, art stalls, and family-friendly performances.</p>
+      <p><strong>KSh 500</strong></p>
+      <button class="btn small red">Book</button>
+    </div>
+
+    <div class="card">
+      <img src="assets/indie-beats.jpg" alt="Indie Beats Fest">
+      <h4>Indie Beats Fest</h4>
+      <p>2026-04-05 — 16:00 • Open Park</p>
+      <p>The best indie acts across town, one unforgettable night.</p>
+      <p><strong>KSh 1,200</strong></p>
+      <button class="btn small red">Book</button>
+    </div>
+
+    <div class="card">
+      <img src="assets/opera-night.jpg" alt="Gala Opera Night">
+      <h4>Gala Opera Night</h4>
+      <p>2025-11-01 — 20:00 • Opera House</p>
+      <p>A night of classical masterpieces by world-class performers.</p>
+      <p><strong>KSh 2,500</strong></p>
+      <button class="btn small red">Book</button>
+    </div>
+
+    <div class="card">
+      <img src="assets/beach-party.jpg" alt="Summer Beach Party">
+      <h4>Summer Beach Party</h4>
+      <p>2026-06-17 — 14:00 • Coastal Grounds</p>
+      <p>Beachside music, games, and food — feel the summer vibes.</p>
+      <p><strong>KSh 600</strong></p>
+      <button class="btn small red">Book</button>
+    </div>
+
+    <div class="card">
+      <img src="assets/jazz-wine.jpg" alt="Jazz & Wine Evening">
+      <h4>Jazz & Wine Evening</h4>
+      <p>2025-10-20 — 19:30 • River Lounge</p>
+      <p>Smooth jazz, fine wine, and great company under the stars.</p>
+      <p><strong>KSh 1,800</strong></p>
+      <button class="btn small red">Book</button>
+    </div>
+
+    <div class="card">
+      <img src="assets/comedy-night.jpg" alt="Stand-up Comedy Night">
+      <h4>Stand-up Comedy Night</h4>
+      <p>2025-12-05 — 21:00 • Laugh House</p>
+      <p>Laugh out loud with the country’s top comedians.</p>
+      <p><strong>KSh 700</strong></p>
+      <button class="btn small red">Book</button>
+    </div>
+
+  </div>
+</main>
+
+  <!-- SEAT MODAL -->
   <div id="bookingModal" class="modal" aria-hidden="true">
     <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
       <button class="modal-close" id="closeModalBtn" title="Close">✕</button>
       <h3 id="modalTitle">Select Seats</h3>
 
       <div id="modalContent" class="modal-content">
-        <!-- left: event summary -->
         <div class="modal-left">
           <img id="modalEventImg" src="assets/event-placeholder.jpg" alt="Event image (replace)">
           <div class="event-summary">
@@ -132,7 +199,6 @@
           </div>
         </div>
 
-        <!-- right: seat map + checkout -->
         <div class="modal-right">
           <div class="seat-legend">
             <span class="seat legend available"></span> Available
@@ -140,9 +206,7 @@
             <span class="seat legend booked"></span> Booked
           </div>
 
-          <div id="seatMap" class="seat-map" role="grid" aria-label="Seat map">
-            <!-- seats rendered by script.js -->
-          </div>
+          <div id="seatMap" class="seat-map" role="grid"></div>
 
           <div class="checkout">
             <div class="summary-line">Selected seats: <span id="selectedList">–</span></div>
@@ -160,7 +224,7 @@
               <div class="row actions">
                 <button type="button" id="confirmBookingBtn" class="btn red">Confirm Booking</button>
               </div>
-              <div id="holdTimer" class="hold-timer" aria-live="polite"></div>
+              <div id="holdTimer" class="hold-timer"></div>
             </form>
           </div>
         </div>
@@ -170,8 +234,8 @@
 
   <!-- SUCCESS MODAL -->
   <div id="successModal" class="modal" aria-hidden="true">
-    <div class="modal-panel small" role="dialog" aria-modal="true">
-      <button class="modal-close" id="closeSuccessBtn" title="Close">✕</button>
+    <div class="modal-panel small">
+      <button class="modal-close" id="closeSuccessBtn">✕</button>
       <div class="success-content">
         <div class="checkmark">✓</div>
         <h3>Booking Confirmed</h3>
@@ -184,23 +248,15 @@
     </div>
   </div>
 
-  <!-- PARTNERS / TESTIMONIALS -->
+  <!-- PARTNERS -->
   <section id="partners" class="partners">
     <div class="max">
       <h3>Our Partners</h3>
       <div class="partner-grid">
-        <!-- placeholders for partner logos (replace with your images) -->
         <div class="partner"><img src="assets/partner-1.png" alt="Partner 1"></div>
         <div class="partner"><img src="assets/partner-2.png" alt="Partner 2"></div>
         <div class="partner"><img src="assets/partner-3.png" alt="Partner 3"></div>
         <div class="partner"><img src="assets/partner-4.png" alt="Partner 4"></div>
-      </div>
-
-      <h3>What customers say</h3>
-      <div class="testimonials">
-        <blockquote>“Fast booking and great prices — Eventure made my trip easy!” <small>— A. Mwangi</small></blockquote>
-        <blockquote>“Smooth checkout, love the e-ticket PDF.” <small>— S. Patel</small></blockquote>
-        <blockquote>“Perfect seats and support.” <small>— L. Kim</small></blockquote>
       </div>
     </div>
   </section>
@@ -227,8 +283,8 @@
         </div>
         <div>
           <h5>Contact</h5>
-          <p>hello@eventure.example</p>
-          <p>+254 700 000000</p>
+          <p>hello@eventure</p>
+          <p>+254 729089668</p>
         </div>
       </div>
       <div class="footer-bottom">© Eventure 2025 — All rights reserved</div>
