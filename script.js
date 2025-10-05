@@ -1,17 +1,9 @@
-
-/* Eventure — main script
-   - Mock data
-   - Search and filter
-   - Renders cards
-   - Booking modal + seat selection
-   - Checkout simulation and success modal
-   - Uses localStorage for last booking
+/* Full Eventure script.js
+   - Supports manual HTML cards (won't delete them)
+   - Falls back to rendering EVENTS if no manual cards exist
+   - Filters, search, reset, booking modal, seat selection, checkout, success modal
 */
 
-/* -------------------------
-   Mock events dataset
-   Replace images by putting files in assets/ and updating .img fields.
-------------------------- */
 const EVENTS = [
   { id: 1, title: "Stellar Night Concert", category: "Concert", date: "2025-12-12", time: "19:00", venue: "Grand Arena", price: 1500, img: "assets/event-1.jpg", description: "An immersive live performance."},
   { id: 2, title: "Classic Theatre Play", category: "Theater", date: "2026-01-08", time: "18:00", venue: "Downtown Theatre", price: 900, img: "assets/event-2.jpg", description: "A timeless drama performed by award-winning cast."},
@@ -24,7 +16,7 @@ const EVENTS = [
 ];
 
 /* -------------------------
-   DOM refs
+   DOM refs (defensive)
 ------------------------- */
 const cardsEl = document.getElementById('cards');
 const promoStrip = document.getElementById('promoStrip');
@@ -55,22 +47,18 @@ const holdTimerEl = document.getElementById('holdTimer');
 
 /* State */
 let currentEvent = null;
-let seatConfig = { rows: 6, cols: 10, price: 1500 }; // default
+let seatConfig = { rows: 6, cols: 10, price: 1500 };
 let selectedSeats = new Set();
 let seatHoldTimer = null;
-let holdSeconds = 600; // 10 minutes
+let holdSeconds = 600;
 
-/* -------------------------
-   Utilities
-------------------------- */
-function $(sel){ return document.querySelector(sel) }
-function createEl(tag, cls){ const e = document.createElement(tag); if(cls) e.className = cls; return e; }
-
+/* Utilities */
+function createEl(tag, cls){ const e=document.createElement(tag); if(cls) e.className = cls; return e; }
 function formatCurrency(x){ return x.toLocaleString(); }
 function randomRef(){ return 'EVT-' + Math.random().toString(36).substr(2,6).toUpperCase(); }
 
 /* -------------------------
-   Render promos
+   Promo rendering (optional)
 ------------------------- */
 const PROMOS = [
   { title: "Up to 30% off selected flights", desc: "Limited period offer", img: "assets/promo-1.jpg" },
@@ -78,37 +66,40 @@ const PROMOS = [
   { title: "Student Discount", desc: "Special fares", img: "assets/promo-3.jpg" }
 ];
 function renderPromos(){
+  if(!promoStrip) return;
   promoStrip.innerHTML = '';
   PROMOS.forEach(p=>{
     const pEl = createEl('div','promo');
     pEl.innerHTML = `<h4>${p.title}</h4><p>${p.desc}</p>`;
     promoStrip.appendChild(pEl);
   });
-  // rotate promos every 3.5s
   let idx=0;
-  setInterval(()=>{
+  setInterval(()=> {
     idx = (idx+1) % PROMOS.length;
     promoStrip.style.transform = `translateX(-${idx * 272}px)`;
   }, 3500);
 }
 
 /* -------------------------
-   Render event cards
+   Render cards (JS)
 ------------------------- */
 function renderCards(list){
+  if(!cardsEl) return;
   cardsEl.innerHTML = '';
   list.forEach(ev=>{
     const card = createEl('article','card');
+    card.dataset.eventId = ev.id; // attach id for later reference
+    card.dataset.category = ev.category || '';
     const img = createEl('img');
-    img.src = ev.img; // replace with your image in assets/
+    img.src = ev.img;
     img.alt = ev.title;
     const body = createEl('div','card-body');
-    body.innerHTML = `<h3>${ev.title}</h3><div class="meta">${ev.date} — ${ev.time} • ${ev.venue}</div><p class="desc">${ev.description}</p>`;
+    body.innerHTML = `<h4>${ev.title}</h4><div class="meta">${ev.date} — ${ev.time} • ${ev.venue}</div><p class="desc">${ev.description}</p>`;
     const footer = createEl('div','card-footer');
     footer.innerHTML = `<div class="price">KSh ${formatCurrency(ev.price)}</div>`;
-    const bookBtn = createEl('button','btn red');
+    const bookBtn = createEl('button','btn small red');
     bookBtn.textContent = 'Book';
-    bookBtn.addEventListener('click', () => openBooking(ev.id));
+    bookBtn.addEventListener('click', ()=> openBooking(ev.id));
     footer.appendChild(bookBtn);
     card.appendChild(img);
     card.appendChild(body);
@@ -118,67 +109,82 @@ function renderCards(list){
 }
 
 /* -------------------------
-   Search & filters
+   Helpers: ensure booking wiring works for manual cards
 ------------------------- */
-function applyFilters(){
-  const kw = filterKeyword.value.trim().toLowerCase();
-  const cat = filterCategory.value;
-  const filtered = EVENTS.filter(e=>{
-    const matchKw = !kw || (e.title.toLowerCase().includes(kw) || e.venue.toLowerCase().includes(kw));
-    const matchCat = !cat || e.category === cat;
-    return matchKw && matchCat;
-  });
-  renderCards(filtered);
+function findEventByTitle(title){
+  if(!title) return null;
+  const t = title.trim().toLowerCase();
+  return EVENTS.find(ev => ev.title.toLowerCase() === t) || null;
 }
 
-resetFilters.addEventListener('click', ()=>{
-  filterKeyword.value=''; filterCategory.value='';
-  renderCards(EVENTS);
-});
-filterKeyword.addEventListener('input', applyFilters);
-filterCategory.addEventListener('change', applyFilters);
+/* -------------------------
+   Filters (operate on DOM cards)
+------------------------- */
+function filterDomCards(){
+  const kw = filterKeyword ? filterKeyword.value.trim().toLowerCase() : '';
+  const cat = filterCategory ? filterCategory.value.trim().toLowerCase() : '';
+
+  const domCards = cardsEl ? Array.from(cardsEl.querySelectorAll('.card')) : [];
+  domCards.forEach(card => {
+    const title = (card.querySelector('h4') || card.querySelector('h3'))?.textContent.trim().toLowerCase() || '';
+    const meta = (card.querySelector('.meta')?.textContent || '').toLowerCase();
+    const desc = (card.querySelector('.desc')?.textContent || '').toLowerCase();
+    const matchesKw = !kw || title.includes(kw) || meta.includes(kw) || desc.includes(kw);
+    const cardCategory = (card.dataset.category || '').toLowerCase();
+    const matchesCat = !cat || cardCategory === cat || title.includes(cat);
+
+    card.style.display = (matchesKw && matchesCat) ? '' : 'none';
+  });
+}
 
 /* -------------------------
-   Booking modal + seat map
+   Booking modal & seat map
 ------------------------- */
-function openBooking(eventId){
-  const ev = EVENTS.find(x=>x.id===eventId);
-  if(!ev) return;
+function openBooking(eventIdOrTitle){
+  // accept either numeric id or string title
+  let ev = null;
+  if(typeof eventIdOrTitle === 'number') ev = EVENTS.find(x=>x.id===eventIdOrTitle);
+  else if(typeof eventIdOrTitle === 'string') ev = findEventByTitle(eventIdOrTitle);
+
+  if(!ev){
+    // try to infer from currently clicked card (fallback)
+    const activeCard = document.activeElement?.closest?.('.card');
+    const idAttr = activeCard?.dataset?.eventId;
+    if(idAttr) ev = EVENTS.find(x=>String(x.id)===String(idAttr));
+  }
+  if(!ev) return alert('Event not found.');
+
   currentEvent = ev;
-  modalEventTitle.textContent = ev.title;
-  modalEventImg.src = ev.img;
-  modalEventWhen.textContent = `${ev.date} • ${ev.time}`;
-  modalEventVenue.textContent = ev.venue;
-  modalSeatPrice.textContent = `KSh ${formatCurrency(ev.price)}`;
+  if(modalEventTitle) modalEventTitle.textContent = ev.title;
+  if(modalEventImg) modalEventImg.src = ev.img;
+  if(modalEventWhen) modalEventWhen.textContent = `${ev.date} • ${ev.time}`;
+  if(modalEventVenue) modalEventVenue.textContent = ev.venue;
+  if(modalSeatPrice) modalSeatPrice.textContent = `KSh ${formatCurrency(ev.price)}`;
   seatConfig.price = ev.price;
   selectedSeats.clear();
-  selectedList.textContent = '–';
-  selectedTotal.textContent = 'KSh 0';
-  buildSeatMap(ev);
-  bookingModal.setAttribute('aria-hidden','false');
-  bookingModal.scrollIntoView({behavior:'smooth'});
-  startHoldTimer(); // start hold for 10 minutes (demo)
+  if(selectedList) selectedList.textContent = '–';
+  if(selectedTotal) selectedTotal.textContent = 'KSh 0';
+  if(typeof buildSeatMap === 'function') buildSeatMap(ev);
+  if(bookingModal) bookingModal.setAttribute('aria-hidden','false');
+  if(bookingModal) bookingModal.scrollIntoView({behavior:'smooth'});
+  startHoldTimer();
 }
 
 function closeModal(){
-  bookingModal.setAttribute('aria-hidden','true');
+  if(bookingModal) bookingModal.setAttribute('aria-hidden','true');
   clearHoldTimer();
 }
 
-closeModalBtn.addEventListener('click', closeModal);
-document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeModal(); });
-
+/* Seat map builder (same as original) */
 function buildSeatMap(ev){
+  if(!seatMap) return;
   seatMap.innerHTML = '';
   const rows = seatConfig.rows;
   const cols = seatConfig.cols;
-  // create sample reserved seats randomly (or use real data)
   const reserved = new Set();
-  // random some booked seats for demo
   for(let i=0;i<Math.floor(Math.random()*8);i++){
     reserved.add(String.fromCharCode(65 + Math.floor(Math.random()*rows)) + (Math.ceil(Math.random()*cols)));
   }
-  // generate grid
   for(let r=0;r<rows;r++){
     for(let c=1;c<=cols;c++){
       const seatId = String.fromCharCode(65+r) + c;
@@ -195,10 +201,10 @@ function buildSeatMap(ev){
   }
 }
 
+/* Seat toggle */
 function toggleSeat(el){
   const seatId = el.dataset.seat;
-  const limit = parseInt(seatsCountSelect.value || '1', 10);
-  // if booked, ignore
+  const limit = parseInt(seatsCountSelect?.value || '1', 10);
   if(el.classList.contains('booked')) return;
   if(el.classList.contains('selected')){
     el.classList.remove('selected');
@@ -216,87 +222,76 @@ function toggleSeat(el){
 
 function updateSelectionUI(){
   const seats = Array.from(selectedSeats).sort();
-  selectedList.textContent = seats.length ? seats.join(', ') : '–';
-  selectedTotal.textContent = 'KSh ' + formatCurrency(seats.length * seatConfig.price);
+  if(selectedList) selectedList.textContent = seats.length ? seats.join(', ') : '–';
+  if(selectedTotal) selectedTotal.textContent = 'KSh ' + formatCurrency(seats.length * seatConfig.price);
 }
 
-/* -------------------------
-   Hold timer (demo)
-------------------------- */
+/* Hold timer */
 function startHoldTimer(){
-  holdSeconds = 600; // 10 minutes
+  holdSeconds = 600;
   clearHoldTimer();
   updateHoldUI();
-  seatHoldTimer = setInterval(()=>{
+  seatHoldTimer = setInterval(()=> {
     holdSeconds--;
     if(holdSeconds <= 0){
       clearHoldTimer();
-      // release seats automatically
       selectedSeats.clear();
       updateSelectionUI();
       alert('Hold expired — seats released.');
       closeModal();
-    } else {
-      updateHoldUI();
-    }
+    } else updateHoldUI();
   }, 1000);
 }
 function updateHoldUI(){
+  if(!holdTimerEl) return;
   const m = Math.floor(holdSeconds/60);
   const s = holdSeconds%60;
   holdTimerEl.textContent = `Hold expires in ${m}:${String(s).padStart(2,'0')}`;
 }
-function clearHoldTimer(){ if(seatHoldTimer){ clearInterval(seatHoldTimer); seatHoldTimer=null; holdTimerEl.textContent=''; } }
+function clearHoldTimer(){
+  if(seatHoldTimer){ clearInterval(seatHoldTimer); seatHoldTimer = null; if(holdTimerEl) holdTimerEl.textContent = ''; }
+}
 
-/* -------------------------
-   Confirm booking
-------------------------- */
-confirmBookingBtn.addEventListener('click', () => {
-  const name = document.getElementById('buyerName').value.trim();
-  const email = document.getElementById('buyerEmail').value.trim();
-  if(!name || !email){
-    alert('Please provide name and email to continue.');
-    return;
-  }
-  const seats = Array.from(selectedSeats);
-  if(seats.length === 0){
-    alert('Please select at least one seat.');
-    return;
-  }
-  // simulate processing
-  confirmBookingBtn.disabled = true;
-  confirmBookingBtn.textContent = 'Processing...';
-  setTimeout(()=>{
-    confirmBookingBtn.disabled = false;
-    confirmBookingBtn.textContent = 'Confirm Booking';
-    finalizeBooking({ name, email, seats });
-  }, 1200);
-});
+/* Confirm booking */
+if(confirmBookingBtn) {
+  confirmBookingBtn.addEventListener('click', () => {
+    const name = document.getElementById('buyerName')?.value.trim();
+    const email = document.getElementById('buyerEmail')?.value.trim();
+    if(!name || !email) { alert('Please provide name and email to continue.'); return; }
+    const seats = Array.from(selectedSeats);
+    if(seats.length === 0){ alert('Please select at least one seat.'); return; }
+    confirmBookingBtn.disabled = true;
+    confirmBookingBtn.textContent = 'Processing...';
+    setTimeout(()=> {
+      confirmBookingBtn.disabled = false;
+      confirmBookingBtn.textContent = 'Confirm Booking';
+      finalizeBooking({ name, email, seats });
+    }, 1200);
+  });
+}
 
+/* Finalize booking */
 function finalizeBooking({name,email,seats}){
-  // build booking record
+  if(!currentEvent){ alert('No event selected.'); return; }
   const ref = randomRef();
   const booking = {
     ref, eventId: currentEvent.id, title: currentEvent.title, date: currentEvent.date, time: currentEvent.time,
     venue: currentEvent.venue, seats, total: seats.length * seatConfig.price, name, email, createdAt: new Date().toISOString()
   };
-  // store in localStorage (demo)
   localStorage.setItem('lastBooking', JSON.stringify(booking));
   showSuccess(booking);
   closeModal();
 }
 
-/* -------------------------
-   Success modal and download
-------------------------- */
+/* Success */
 function showSuccess(booking){
-  bookingRefEl.textContent = booking.ref;
-  successSummary.innerHTML = `Hi <strong>${booking.name}</strong>, your booking for <strong>${booking.title}</strong> (${booking.date}) has been confirmed. Seats: <strong>${booking.seats.join(', ')}</strong>. Total: <strong>KSh ${formatCurrency(booking.total)}</strong>`;
-  successModal.setAttribute('aria-hidden','false');
+  if(bookingRefEl) bookingRefEl.textContent = booking.ref;
+  if(successSummary) successSummary.innerHTML = `Hi <strong>${booking.name}</strong>, your booking for <strong>${booking.title}</strong> (${booking.date}) has been confirmed. Seats: <strong>${booking.seats.join(', ')}</strong>. Total: <strong>KSh ${formatCurrency(booking.total)}</strong>`;
+  if(successModal) successModal.setAttribute('aria-hidden','false');
 }
-closeSuccessBtn.addEventListener('click', ()=> successModal.setAttribute('aria-hidden','true'));
-closeSuccessAction.addEventListener('click', ()=> successModal.setAttribute('aria-hidden','true'));
-downloadTicketBtn.addEventListener('click', ()=> {
+if(closeSuccessBtn) closeSuccessBtn.addEventListener('click', ()=> successModal && successModal.setAttribute('aria-hidden','true'));
+if(closeSuccessAction) closeSuccessAction.addEventListener('click', ()=> successModal && successModal.setAttribute('aria-hidden','true'));
+if(downloadTicketBtn) downloadTicketBtn.addEventListener('click', ()=> {
   const bk = JSON.parse(localStorage.getItem('lastBooking') || '{}');
   if(!bk.ref) return alert('No booking to download.');
   const content = `<!doctype html><html><head><meta charset="utf-8"><title>Ticket ${bk.ref}</title></head><body style="font-family:Arial;padding:28px"><h2>Eventure e-Ticket</h2><p><strong>Ref:</strong> ${bk.ref}</p><p><strong>Event:</strong> ${bk.title}</p><p><strong>Date:</strong> ${bk.date} ${bk.time}</p><p><strong>Venue:</strong> ${bk.venue}</p><p><strong>Seats:</strong> ${bk.seats.join(', ')}</p><p><strong>Total:</strong> KSh ${formatCurrency(bk.total)}</p><p>Show this at the venue. Thank you for booking with Eventure.</p></body></html>`;
@@ -305,43 +300,94 @@ downloadTicketBtn.addEventListener('click', ()=> {
 });
 
 /* -------------------------
-   Init & events
+   INIT
 ------------------------- */
 function init(){
+  // promos
   renderPromos();
-  renderCards(EVENTS);
 
-  // search form submit: filter events by from/to/date (simple demo)
-  searchForm.addEventListener('submit', (e)=>{
-    e.preventDefault();
-    const from = document.getElementById('from').value.trim().toLowerCase();
-    const to = document.getElementById('to').value.trim().toLowerCase();
-    const date = document.getElementById('date').value;
-    const seatsNeeded = parseInt(document.getElementById('seatsCount').value || '1',10);
-    // basic filtering demo: match venue or title with to/from
-    const results = EVENTS.filter(ev=>{
-      const matchDate = !date || ev.date === date;
-      const matchFromTo = (!from || ev.venue.toLowerCase().includes(from) || ev.title.toLowerCase().includes(from)) &&
-                          (!to || ev.venue.toLowerCase().includes(to) || ev.title.toLowerCase().includes(to));
-      return matchDate && matchFromTo;
+  // if there is no manual card in HTML, render from EVENTS
+  const hasManualCards = cardsEl && cardsEl.querySelector && cardsEl.querySelectorAll('.card') && cardsEl.querySelectorAll('.card').length > 0;
+  if(!hasManualCards && cardsEl){
+    renderCards(EVENTS);
+  } else if(hasManualCards){
+    // ensure each manual card has dataset.category if possible (helps filters)
+    const manualCards = Array.from(cardsEl.querySelectorAll('.card'));
+    manualCards.forEach(card => {
+      if(!card.dataset.category){
+        const title = (card.querySelector('h4') || card.querySelector('h3'))?.textContent || '';
+        const t = title.toLowerCase();
+        if(t.includes('concert')) card.dataset.category = 'concert';
+        else if(t.includes('theatre') || t.includes('theater')) card.dataset.category = 'theatre';
+        else if(t.includes('festival')) card.dataset.category = 'festival';
+        else if(t.includes('comedy')) card.dataset.category = 'comedy';
+        else card.dataset.category = '';
+      }
+      // if manual card lacks an event-id but title matches an EVENTS entry, attach id
+      const titleText = (card.querySelector('h4') || card.querySelector('h3'))?.textContent || '';
+      const matched = findEventByTitle(titleText);
+      if(matched) card.dataset.eventId = matched.id;
     });
-    renderCards(results.length? results : EVENTS);
-    // auto-scroll to results
-    document.getElementById('results').scrollIntoView({behavior:'smooth'});
+  }
+
+  // Wire up global filter inputs
+  if(filterKeyword) filterKeyword.addEventListener('input', filterDomCards);
+  if(filterCategory) filterCategory.addEventListener('change', filterDomCards);
+  if(resetFilters) resetFilters.addEventListener('click', ()=>{
+    if(filterKeyword) filterKeyword.value = '';
+    if(filterCategory) filterCategory.value = '';
+    filterDomCards();
   });
 
-  // quick explore button
-  document.getElementById('exploreBtn').addEventListener('click', ()=> {
-    document.getElementById('results').scrollIntoView({behavior:'smooth'});
-  });
+  // Wire Book buttons for both manual and generated cards
+  if(cardsEl){
+    cardsEl.addEventListener('click', (e)=>{
+      const btn = e.target.closest && e.target.closest('.btn');
+      if(!btn) return;
+      if(!btn.classList.contains('red')) return; // only Book buttons
+      const card = btn.closest('.card');
+      if(!card) return;
+      const eid = card.dataset.eventId;
+      if(eid){
+        openBooking(Number(eid));
+      } else {
+        // fallback: try matching by title text
+        const title = (card.querySelector('h4') || card.querySelector('h3'))?.textContent;
+        openBooking(title);
+      }
+    });
+  }
 
-  // filters already wired: filter inputs call applyFilters()
-  // show last booking if exists
+  // Modal close
+  if(closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
+  document.addEventListener('keydown', (e)=> { if(e.key === 'Escape') closeModal(); });
+
+  // Search form handler (if present)
+  if(searchForm){
+    searchForm.addEventListener('submit', (e)=>{
+      e.preventDefault();
+      // perform simple search and re-use DOM filters
+      filterDomCards();
+      const resultsEl = document.getElementById('results');
+      if(resultsEl) resultsEl.scrollIntoView({behavior:'smooth'});
+    });
+  }
+
+  // Explore button graceful hook
+  const exploreBtn = document.getElementById('exploreBtn');
+  if(exploreBtn){
+    exploreBtn.addEventListener('click', ()=> {
+      const resultsEl = document.getElementById('results');
+      if(resultsEl) resultsEl.scrollIntoView({behavior:'smooth'});
+    });
+  }
+
+  // Restore last booking optionally
   const last = JSON.parse(localStorage.getItem('lastBooking') || 'null');
   if(last && last.ref){
-    // optionally show success on load (comment out if undesired)
-    // showSuccess(last);
+    // showSuccess(last); // uncomment if you want to auto-show last success
   }
 }
 
+/* start */
 init();
